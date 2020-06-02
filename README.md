@@ -13,7 +13,7 @@ Please take a look at [contributing guide](docs/CONTRIBUTING.md). It will provid
 a general overview of the project and how to contribute.
 
 ## API Documentation
-The API documentation is available at https://schedge.torchnyu.com .
+The API documentation is available at https://schedge.a1liu.com .
 
 ## Commands
 The following commands are valid in Schedge:
@@ -43,5 +43,5 @@ College of Arts and Sciences for the Spring, 2020.
 ## Front Ends
 If you'd like to write a front end to this API, you can list it below!
 
-- https://courses.torchnyu.com
-- https://bobcat-search.netlify.com
+- https://courses.torchnyu.com (repo at https://github.com/NicholasLYang/courses )
+- https://bobcat-search.netlify.com (repo at https://github.com/EthanPrintz/bobcat-search )

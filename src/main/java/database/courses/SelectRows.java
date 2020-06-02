@@ -20,7 +20,7 @@ import org.slf4j.LoggerFactory;
 public class SelectRows {
 
   private static Logger logger =
-      LoggerFactory.getLogger("database.courses.SelectCourseSectionRows");
+      LoggerFactory.getLogger("database.courses.SelectRows");
 
   public static Stream<Row> selectRows(DSLContext context, int epoch,
                                        SubjectCode code) {
@@ -29,11 +29,29 @@ public class SelectRows {
                       COURSES.SUBJECT.eq(code.code));
   }
 
+  public static Stream<Row> selectRow(DSLContext context, int epoch,
+                                      int registrationNumber) {
+    Record1<Integer> rec =
+        context.select(SECTIONS.ID)
+            .from(SECTIONS)
+            .join(COURSES)
+            .on(COURSES.ID.eq(SECTIONS.COURSE_ID))
+            .where(SECTIONS.REGISTRATION_NUMBER.eq(registrationNumber),
+                   COURSES.EPOCH.eq(epoch))
+            .fetchOne();
+    if (rec == null) {
+      return Stream.empty();
+    }
+    int val = rec.component1();
+    return selectRows(context,
+                      SECTIONS.ASSOCIATED_WITH.eq(val).or(SECTIONS.ID.eq(val)));
+  }
+
   public static Stream<Row> selectRows(DSLContext context,
                                        Condition... conditions) {
     Map<Integer, List<Meeting>> meetingsList =
         selectMeetings(context, conditions);
-    Result<Record> records =
+    Result<org.jooq.Record> records =
         context
             .select(COURSES.asterisk(), SECTIONS.ID,
                     SECTIONS.REGISTRATION_NUMBER, SECTIONS.SECTION_CODE,
@@ -50,7 +68,7 @@ public class SelectRows {
             .leftJoin(IS_TEACHING_SECTION)
             .on(SECTIONS.ID.eq(IS_TEACHING_SECTION.SECTION_ID))
             .where(conditions)
-            .groupBy(SECTIONS.ID)
+            .groupBy(COURSES.ID, SECTIONS.ID)
             .fetch();
 
     return StreamSupport
@@ -66,11 +84,29 @@ public class SelectRows {
                           COURSES.SUBJECT.eq(code.code));
   }
 
+  public static Stream<FullRow> selectFullRow(DSLContext context, int epoch,
+                                              int registrationNumber) {
+    Record1<Integer> rec =
+        context.select(SECTIONS.ID)
+            .from(SECTIONS)
+            .join(COURSES)
+            .on(COURSES.ID.eq(SECTIONS.COURSE_ID))
+            .where(SECTIONS.REGISTRATION_NUMBER.eq(registrationNumber),
+                   COURSES.EPOCH.eq(epoch))
+            .fetchOne();
+    if (rec == null) {
+      return Stream.empty();
+    }
+    int val = rec.component1();
+    return selectFullRows(
+        context, SECTIONS.ASSOCIATED_WITH.eq(val).or(SECTIONS.ID.eq(val)));
+  }
+
   public static Stream<FullRow> selectFullRows(DSLContext context,
                                                Condition... conditions) {
     Map<Integer, List<Meeting>> meetingsList =
         selectMeetings(context, conditions);
-    Result<Record> records =
+    Result<org.jooq.Record> records =
         context
             .select(COURSES.asterisk(), SECTIONS.asterisk(),
                     groupConcat(
@@ -82,7 +118,7 @@ public class SelectRows {
             .leftJoin(IS_TEACHING_SECTION)
             .on(SECTIONS.ID.eq(IS_TEACHING_SECTION.SECTION_ID))
             .where(conditions)
-            .groupBy(SECTIONS.ID)
+            .groupBy(COURSES.ID, SECTIONS.ID)
             .fetch();
 
     return StreamSupport
@@ -91,7 +127,7 @@ public class SelectRows {
         .map(r -> new FullRow(r, meetingsList.get(r.get(SECTIONS.ID))));
   }
 
-  private static Map<Integer, List<Meeting>>
+  public static Map<Integer, List<Meeting>>
   selectMeetings(DSLContext context, Condition... conditions) {
     Result<Record4<Integer, String, String, String>> records =
         context

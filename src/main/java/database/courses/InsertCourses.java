@@ -1,6 +1,7 @@
 package database.courses;
 
-import database.generated.Tables;
+import static database.generated.Tables.*;
+
 import database.generated.tables.Courses;
 import database.generated.tables.Meetings;
 import database.generated.tables.Sections;
@@ -32,22 +33,24 @@ public class InsertCourses {
   public static ArrayList<SectionID> insertCourses(DSLContext context,
                                                    Term term, int epoch,
                                                    List<Course> courses) {
-    Courses COURSES = Tables.COURSES;
-
     ArrayList<SectionID> states = new ArrayList<>();
     for (Course c : courses) {
       context.transaction(config -> {
         DSLContext ctx = DSL.using(config);
 
-        int id = ctx.insertInto(COURSES, COURSES.EPOCH, COURSES.NAME,
-                                COURSES.SCHOOL, COURSES.SUBJECT,
-                                COURSES.DEPT_COURSE_ID, COURSES.TERM_ID)
-                     .values(epoch, c.getName(), c.getSchool(), c.getSubject(),
-                             c.getDeptCourseId(), term.getId())
-                     .returning(COURSES.ID)
-                     .fetchOne()
-                     .getValue(COURSES.ID);
-        insertSections(ctx, id, c.getSections(), states);
+        int id =
+            ctx.insertInto(COURSES, COURSES.EPOCH, COURSES.NAME,
+                           COURSES.NAME_VEC, COURSES.SCHOOL, COURSES.SUBJECT,
+                           COURSES.DEPT_COURSE_ID, COURSES.TERM_ID)
+                .values(epoch, c.name,
+                        DSL.field("to_tsvector({0})",
+                                  c.subjectCode.code + ' ' + c.name),
+                        c.subjectCode.school, c.subjectCode.code,
+                        c.deptCourseId, term.getId())
+                .returning(COURSES.ID)
+                .fetchOne()
+                .getValue(COURSES.ID);
+        insertSections(ctx, id, c.sections, states);
       });
     }
     return states;
@@ -56,27 +59,24 @@ public class InsertCourses {
   public static void insertSections(DSLContext context, int courseId,
                                     List<Section> sections,
                                     ArrayList<SectionID> states) {
-    Sections SECTIONS = Tables.SECTIONS;
-
     for (Section s : sections) {
-      Record r = context
-                     .insertInto(SECTIONS, SECTIONS.REGISTRATION_NUMBER,
-                                 SECTIONS.COURSE_ID, SECTIONS.SECTION_CODE,
-                                 SECTIONS.SECTION_TYPE, SECTIONS.SECTION_STATUS,
-                                 SECTIONS.WAITLIST_TOTAL)
-                     .values(s.getRegistrationNumber(), courseId,
-                             s.getSectionCode(), s.getType().ordinal(),
-                             s.getStatus().ordinal(), s.getWaitlistTotal())
-                     .returning(SECTIONS.ID, SECTIONS.REGISTRATION_NUMBER)
-                     .fetchOne();
+      Record r =
+          context
+              .insertInto(SECTIONS, SECTIONS.REGISTRATION_NUMBER,
+                          SECTIONS.COURSE_ID, SECTIONS.SECTION_CODE,
+                          SECTIONS.SECTION_TYPE, SECTIONS.SECTION_STATUS,
+                          SECTIONS.WAITLIST_TOTAL)
+              .values(s.registrationNumber, courseId, s.sectionCode,
+                      s.type.ordinal(), s.status.ordinal(), s.waitlistTotal)
+              .returning(SECTIONS.ID, SECTIONS.REGISTRATION_NUMBER)
+              .fetchOne();
 
-      SectionID state = new SectionID(s.getSubjectCode(), r.get(SECTIONS.ID),
-                                      s.getRegistrationNumber());
+      SectionID state = new SectionID(s.subjectCode, r.get(SECTIONS.ID),
+                                      s.registrationNumber);
       states.add(state);
-      insertMeetings(context, state.id, s.getMeetings());
-      if (s.getRecitations() != null)
-        insertRecitations(context, courseId, s.getRecitations(), state.id,
-                          states);
+      insertMeetings(context, state.id, s.meetings);
+      if (s.recitations != null)
+        insertRecitations(context, courseId, s.recitations, state.id, states);
     }
   }
 
@@ -85,45 +85,42 @@ public class InsertCourses {
                                        int associatedWith,
                                        ArrayList<SectionID> states) {
     for (Section s : sections) {
-      if (s.getType() == SectionType.LEC)
+      if (s.type == SectionType.LEC)
         throw new IllegalArgumentException(
             "Associated section was a lecture for some reason");
-      if (s.getRecitations() != null)
+      if (s.recitations != null)
         throw new IllegalArgumentException(
             "Associated section had associated sections for some reason.");
 
-      Sections SECTIONS = Tables.SECTIONS;
       Record r =
           context
               .insertInto(SECTIONS, SECTIONS.REGISTRATION_NUMBER,
                           SECTIONS.COURSE_ID, SECTIONS.SECTION_CODE,
                           SECTIONS.SECTION_TYPE, SECTIONS.SECTION_STATUS,
                           SECTIONS.WAITLIST_TOTAL, SECTIONS.ASSOCIATED_WITH)
-              .values(s.getRegistrationNumber(), courseId, s.getSectionCode(),
-                      s.getType().ordinal(), s.getStatus().ordinal(),
-                      s.getWaitlistTotal(), associatedWith)
+              .values(s.registrationNumber, courseId, s.sectionCode,
+                      s.type.ordinal(), s.status.ordinal(), s.waitlistTotal,
+                      associatedWith)
               .returning(SECTIONS.ID, SECTIONS.REGISTRATION_NUMBER)
               .fetchOne();
-      SectionID state = new SectionID(s.getSubjectCode(), r.get(SECTIONS.ID),
-                                      s.getRegistrationNumber());
+      SectionID state = new SectionID(s.subjectCode, r.get(SECTIONS.ID),
+                                      s.registrationNumber);
       states.add(state);
-      insertMeetings(context, state.id, s.getMeetings());
+      insertMeetings(context, state.id, s.meetings);
     }
   }
 
   public static void insertMeetings(DSLContext context, int sectionId,
                                     List<Meeting> meetings) {
-    Meetings MEETINGS = Tables.MEETINGS;
     context.delete(MEETINGS).where(MEETINGS.SECTION_ID.eq(sectionId)).execute();
 
     for (Meeting m : meetings) {
       context
           .insertInto(MEETINGS, MEETINGS.SECTION_ID, MEETINGS.BEGIN_DATE,
                       MEETINGS.DURATION, MEETINGS.END_DATE)
-          .values(sectionId,
-                  Timestamp.from(m.getBeginDate().toInstant(ZoneOffset.UTC)),
-                  m.getMinutesDuration(),
-                  Timestamp.from(m.getEndDate().toInstant(ZoneOffset.UTC)))
+          .values(
+              sectionId, Timestamp.from(m.beginDate.toInstant(ZoneOffset.UTC)),
+              m.duration, Timestamp.from(m.endDate.toInstant(ZoneOffset.UTC)))
           .execute();
     }
   }
