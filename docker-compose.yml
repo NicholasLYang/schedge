@@ -9,7 +9,7 @@ services:
     # Enables the web UI and tells Traefik to listen to docker
     command:
 #      - "--log.level=DEBUG"
-      - "--api.insecure=true"
+#      - "--api.insecure=true"
       - "--providers.docker=true"
       # You need to actively say traefik.enable=true
       - "--providers.docker.exposedbydefault=false"
@@ -19,8 +19,8 @@ services:
       - "--certificatesresolvers.mytlschallenge.acme.email=nick@nicholasyang.com"
       - "--certificatesresolvers.mytlschallenge.acme.storage=/letsencrypt/acme.json"
     ports:
-      - "8000:80"
-      - "4430:443"
+      - "80:80"
+      - "443:443"
       # The Web UI (enabled by --api.insecure=true)
       - "8080:8080"
     volumes:
@@ -32,14 +32,14 @@ services:
     image: postgres
     restart: always
     environment:
-      POSTGRES_PASSWORD:
+      POSTGRES_PASSWORD: foobar
       POSTGRES_DB: schedge
       POSTGRES_USER: schedge
 
   api:
     build: .
     environment:
-      JDBC_URL: jdbc:postgresql://db:5432/schedge
+      JDBC_URL: jdbc:postgresql://db:5432/schedge?password=foobar
     depends_on:
       - "db"
     ports:
