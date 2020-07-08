@@ -6,7 +6,6 @@ import database.models.Row;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import javax.validation.constraints.NotNull;
 import nyu.Meeting;
 import nyu.SectionStatus;
 import nyu.SectionType;
@@ -80,17 +79,17 @@ public class Section {
     this.prerequisites = prerequisites;
   }
 
-  public @NotNull int getRegistrationNumber() { return registrationNumber; }
+  public int getRegistrationNumber() { return registrationNumber; }
 
-  public @NotNull String getCode() { return code; }
+  public String getCode() { return code; }
 
-  public @NotNull String[] getInstructors() { return instructors; }
+  public String[] getInstructors() { return instructors; }
 
-  public @NotNull SectionType getType() { return type; }
+  public SectionType getType() { return type; }
 
-  public @NotNull SectionStatus getStatus() { return status; }
+  public SectionStatus getStatus() { return status; }
 
-  public @NotNull List<Meeting> getMeetings() { return meetings; }
+  public List<Meeting> getMeetings() { return meetings; }
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
   public List<Section> getRecitations() {

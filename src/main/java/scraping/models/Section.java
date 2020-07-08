@@ -1,9 +1,10 @@
 package scraping.models;
 
-import java.util.List;
 import nyu.SectionStatus;
 import nyu.SectionType;
 import nyu.SubjectCode;
+
+import java.util.List;
 
 public class Section {
   public final int registrationNumber;
@@ -31,5 +32,13 @@ public class Section {
     this.status = status;
     this.meetings = meetings;
     this.recitations = recitations;
+  }
+
+  public String toString() {
+    return "Section(subjectCode=" + subjectCode +
+        ",waitlistTotal=" + waitlistTotal +
+        ",registrationNumber=" + registrationNumber +
+        ",sectionCode=" + sectionCode + ",type=" + type + ",status=" + status +
+        ",meetings=" + meetings + ",recitations=" + recitations + ")";
   }
 }

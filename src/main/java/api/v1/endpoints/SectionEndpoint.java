@@ -1,11 +1,8 @@
 package api.v1.endpoints;
 
-import static io.javalin.plugin.openapi.dsl.DocumentedContentKt.guessContentType;
-
 import api.Endpoint;
 import api.v1.ApiError;
 import api.v1.RowsToCourses;
-import api.v1.SelectCourses;
 import api.v1.models.Course;
 import api.v1.models.Section;
 import database.GetConnection;
@@ -13,11 +10,10 @@ import database.courses.SelectRows;
 import database.epochs.LatestCompleteEpoch;
 import io.javalin.http.Handler;
 import io.javalin.plugin.openapi.dsl.OpenApiDocumentation;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import nyu.SubjectCode;
 import nyu.Term;
+
+import java.util.ArrayList;
+import java.util.Collections;
 
 public final class SectionEndpoint extends Endpoint {
 
@@ -89,21 +85,21 @@ public final class SectionEndpoint extends Endpoint {
 
       String fullData = ctx.queryParam("full");
 
-      Object output = GetConnection.withContextReturning(context -> {
-        Integer epoch = LatestCompleteEpoch.getLatestEpoch(context, term);
+      Object output = GetConnection.withConnectionReturning(conn -> {
+        Integer epoch = LatestCompleteEpoch.getLatestEpoch(conn, term);
         if (epoch == null) {
           return Collections.emptyList();
         }
         if (fullData != null && fullData.toLowerCase().equals("true"))
           return RowsToCourses
               .fullRowsToCourses(
-                  SelectRows.selectFullRow(context, epoch, registrationNumber))
+                  SelectRows.selectFullRow(conn, epoch, registrationNumber))
               .findAny()
               .map(c -> c.getSections().get(0))
               .orElse(null);
         return RowsToCourses
             .rowsToCourses(
-                SelectRows.selectRow(context, epoch, registrationNumber))
+                SelectRows.selectRow(conn, epoch, registrationNumber))
             .findAny()
             .map(c -> c.getSections().get(0))
             .orElse(null);

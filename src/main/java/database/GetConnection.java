@@ -6,17 +6,19 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import org.jetbrains.annotations.NotNull;
-import org.jooq.DSLContext;
-import org.jooq.SQLDialect;
-import org.jooq.impl.DSL;
 
 /**
  * This class get connection to the SQLite database using JDBC Driver
  */
 public class GetConnection {
 
-  public static final SQLDialect DIALECT = SQLDialect.POSTGRES;
+  public interface SQLConsumer {
+    void accept(Connection c) throws SQLException;
+  }
+
+  public interface SQLFunction<T> {
+    T apply(Connection conn) throws SQLException;
+  }
 
   private static HikariDataSource dataSource;
 
@@ -28,17 +30,17 @@ public class GetConnection {
       return value;
   }
 
-  public static void withContext(Consumer<DSLContext> f) {
+  public static void withConnection(SQLConsumer f) {
     try (Connection conn = getConnection()) {
-      f.accept(DSL.using(conn, DIALECT));
+      f.accept(conn);
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }
   }
 
-  public static <T> T withContextReturning(Function<DSLContext, T> f) {
+  public static <T> T withConnectionReturning(SQLFunction<T> f) {
     try (Connection conn = getConnection()) {
-      return f.apply(DSL.using(conn, DIALECT));
+      return f.apply(conn);
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }
@@ -50,7 +52,7 @@ public class GetConnection {
       config.setUsername(getEnvDefault("DB_USERNAME", "schedge"));
       config.setPassword(getEnvDefault("DB_PASSWORD", ""));
       config.setJdbcUrl(getEnvDefault(
-          "JDBC_URL", "jdbc:postgresql://localhost:5432/schedge"));
+          "JDBC_URL", "jdbc:postgresql://127.0.0.1:5432/schedge"));
       dataSource = new HikariDataSource(config);
     }
   }

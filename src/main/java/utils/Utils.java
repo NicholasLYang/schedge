@@ -1,6 +1,10 @@
 package utils;
 
 import java.io.*;
+import java.sql.Array;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.DayOfWeek;
 import java.util.Arrays;
 import java.util.List;
@@ -80,5 +84,62 @@ public final class Utils {
         deleteFile(c);
     }
     return f.delete();
+  }
+
+  public static void setObject(PreparedStatement stmt, int index, Object obj)
+      throws SQLException {
+    if (obj instanceof NullWrapper) {
+      NullWrapper nullable = (NullWrapper)obj;
+      if (nullable.value == null) {
+        stmt.setNull(index, nullable.type);
+      } else {
+        setObject(stmt, index, nullable.value);
+      }
+    } else if (obj instanceof String) {
+      stmt.setString(index, (String)obj);
+    } else if (obj instanceof Integer) {
+      stmt.setInt(index, (Integer)obj);
+    } else if (obj instanceof Timestamp) {
+      stmt.setTimestamp(index, (Timestamp)obj);
+    } else if (obj instanceof Long) {
+      stmt.setLong(index, (Long)obj);
+    } else if (obj instanceof Array) {
+      stmt.setArray(index, (Array)obj);
+    } else if (obj instanceof Float) {
+      stmt.setFloat(index, (Float)obj);
+    } else if (obj instanceof Double) {
+      stmt.setDouble(index, (Double)obj);
+    } else {
+      throw new IllegalArgumentException(
+          "type of object is incompatible for object=" + obj.toString());
+    }
+  }
+
+  static class NullWrapper {
+    int type;
+    Object value;
+
+    NullWrapper(int type, Object value) {
+      this.type = type;
+      this.value = value;
+    }
+  }
+
+  public static NullWrapper nullable(int type, Object value) {
+    return new NullWrapper(type, value);
+  }
+
+  public static PreparedStatement setArray(PreparedStatement stmt,
+                                           Object... objs) {
+    int i = 0;
+    try {
+      for (i = 0; i < objs.length; i++) {
+        setObject(stmt, i + 1, objs[i]);
+      }
+      return stmt;
+    } catch (Exception e) {
+      System.err.println("at index " + i);
+      throw new RuntimeException(e);
+    }
   }
 }

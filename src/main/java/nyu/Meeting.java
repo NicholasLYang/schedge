@@ -1,8 +1,5 @@
 package nyu;
 
-import java.time.format.DateTimeFormatter;
-import java.util.Locale;
-import javax.validation.constraints.NotNull;
 import utils.JsonSerializable;
 
 public class Meeting implements JsonSerializable {
@@ -16,11 +13,11 @@ public class Meeting implements JsonSerializable {
     this.endDate = endDate;
   }
 
-  public @NotNull String getBeginDate() { return beginDate; }
+  public String getBeginDate() { return beginDate; }
 
-  public @NotNull Long getMinutesDuration() { return minutesDuration; }
+  public Long getMinutesDuration() { return minutesDuration; }
 
-  public @NotNull String getEndDate() { return endDate; }
+  public String getEndDate() { return endDate; }
 
   @Override
   public void toJson(StringBuilder s) {

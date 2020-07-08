@@ -1,9 +1,9 @@
 package scraping.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import java.util.List;
-import javax.validation.constraints.NotNull;
 import nyu.SubjectCode;
+
+import java.util.List;
 
 public final class Course {
 
@@ -28,5 +28,10 @@ public final class Course {
   @JsonIgnore
   public String getSchool() {
     return subjectCode.school;
+  }
+
+  public String toString() {
+    return "Course(name=" + name + ",deptCourseId=" + deptCourseId +
+        ",subjectCode=" + subjectCode + ",sections=" + sections + ")";
   }
 }

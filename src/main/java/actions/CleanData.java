@@ -1,16 +1,21 @@
 package actions;
 
-import static database.epochs.LatestCompleteEpoch.getLatestEpoch;
-
 import database.GetConnection;
 import database.epochs.CleanEpoch;
-import java.util.function.BiFunction;
 import nyu.Term;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import utils.Utils;
+
+import java.sql.SQLException;
+
+import static database.epochs.LatestCompleteEpoch.getLatestEpoch;
 
 public class CleanData {
+
+
+    interface BiFunction<T, E, R> {
+        R apply(T t, E e) throws SQLException;
+    }
 
   private static Logger logger = LoggerFactory.getLogger("actions.CleanData");
   public static void cleanData() {
@@ -22,9 +27,9 @@ public class CleanData {
     Term next = current.nextTerm();
     Term nextNext = current.nextTerm();
 
-    Integer minLiveEpoch = GetConnection.withContextReturning(context -> {
+    Integer minLiveEpoch = GetConnection.withConnectionReturning(conn -> {
       BiFunction<Integer, Term, Integer> updateMin = (curMin, curTerm) -> {
-        Integer cur = getLatestEpoch(context, curTerm);
+        Integer cur = getLatestEpoch(conn, curTerm);
         if (curMin == null || (cur != null && cur < curMin)) {
           return cur;
         } else
@@ -47,7 +52,7 @@ public class CleanData {
 
     logger.info("Oldest live epoch is epoch=" + minLiveEpoch);
 
-    GetConnection.withContext(
-        context -> CleanEpoch.cleanEpochsUpTo(context, minLiveEpoch));
+    GetConnection.withConnection(
+        conn -> CleanEpoch.cleanEpochsUpTo(conn, minLiveEpoch));
   }
 }
